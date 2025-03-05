@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação Dentária</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+
+        #controls {
+            position: absolute;
+            top: 150px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+
+        button {
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h3>Dental Procedure Simulation</h3>
+        <p>Select the object (Tool/Tooth/Cavity/Restoration) to control, and use the buttons to move or rotate it.</p>
+    </div>
+
+    <div id="controls">
+        <label for="selectObject">Select Object:</label><br>
+        <input type="radio" id="selectTool" name="selection" value="tool" checked> Instrumental<br>
+        <input type="radio" id="selectTooth" name="selection" value="tooth"> Dente<br>
+        <input type="radio" id="selectCavity" name="selection" value="cavity"> Cárie<br>
+        <input type="radio" id="selectRestoration" name="selection" value="restoration"> Restauração<br><br>
+
+        <h4>Move:</h4>
+        <button onclick="move('up')">Acima</button>
+        <button onclick="move('down')">Abaixo</button><br>
+        <button onclick="move('left')">Esquerda</button>
+        <button onclick="move('right')">Direita</button><br>
+        <button onclick="move('forward')">Avançar</button>
+        <button onclick="move('backward')">Recuar</button><br><br>
+
+        <h4>Rotate:</h4>
+        <button onclick="rotate('x')">Rotação X</button>
+        <button onclick="rotate('y')">Rotação Y</button>
+        <button onclick="rotate('z')">Rotação Z</button><br><br>
+        <button id="releaseRestoration">Soltar Restauração</button>
+        <button id="resetTool">Resetar Ferramenta</button>
+
+        <h4>Mouse Control:</h4>
+        <button id="toggleMouseControl">Habilitar Controle por Mouse</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/MTLLoader.js"></script>
+
+    <script>
+        let selectedObject = 'tool';
+        const moveSpeed = 0.1;
+        const rotateSpeed = 0.1;
+        let mouseControlEnabled = false;
+        let cavityAttachedToTool = false;
+        let restorationAttachedToTool = false;
+
+        // Posição inicial da ferramenta
+        const initialToolPosition = new THREE.Vector3(0, 0, -2);
+
+        // Cena interativa
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Luzes
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(1, 1, 1).normalize();
+        scene.add(directionalLight);
+
+        // Carregar o arquivo .mtl para o dente
+        const mtlLoader = new THREE.MTLLoader();
+        mtlLoader.load('dente furado/Blank.mtl', function (materials) {
+            materials.preload();
+
+            // Carregar o arquivo .obj com os materiais aplicados
+            const objLoader = new THREE.OBJLoader();
+            objLoader.setMaterials(materials);
+
+            objLoader.load('dente furado/16930_tooth_with_cavity_NEW.obj', function (object) {
+                object.position.set(0, -1, 0);
+                object.scale.set(0.5, 0.5, 0.5);
+                toothObject = object;
+                scene.add(object);
+            });
+        });
+
+        // Ferramenta de raspagem (cureta)
+        const toolGeometry = new THREE.CylinderGeometry(0.05, 0.05, 2, 32);
+        const toolMaterial = new THREE.MeshPhongMaterial({ color: 0x5555ff });
+        const tool = new THREE.Mesh(toolGeometry, toolMaterial);
+        tool.rotation.x = Math.PI / 2;
+        tool.position.copy(initialToolPosition);  // Use a posição inicial
+        scene.add(tool);
+
+        // Criar o pontinho preto (simulando uma cárie)
+        const cavityGeometry = new THREE.SphereGeometry(0.1, 32, 32);
+        const cavityMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+        const cavity = new THREE.Mesh(cavityGeometry, cavityMaterial);
+        cavity.position.set(0, -0.9, 0.3);  // Posiciona a cárie próxima ao dente
+        scene.add(cavity);
+
+        // Criar o pontinho branco (simulando uma restauração)
+        const restorationGeometry = new THREE.SphereGeometry(0.1, 32, 32);
+        const restorationMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+        const restoration = new THREE.Mesh(restorationGeometry, restorationMaterial);
+        restoration.position.set(-0.5, -0.8, 0);  // Posiciona a restauração próxima ao dente
+        scene.add(restoration);
+
+        camera.position.z = 5;
+
+        // OrbitControls para rotação com mouse
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enabled = false;  // Desabilitado inicialmente
+
+        // Função de animação
+        function animate() {
+            requestAnimationFrame(animate);
+            checkToolCavityCollision();
+            checkToolRestorationCollision();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Defina um vetor de deslocamento para a ponta da ferramenta
+        const toolTipOffset = new THREE.Vector3(0, 0, -1); // Ajuste os valores conforme necessário
+
+        // Função para detectar colisão entre ferramenta e cárie
+        function checkToolCavityCollision() {
+            const toolBoundingBox = new THREE.Box3().setFromObject(tool);
+            const cavityBoundingBox = new THREE.Box3().setFromObject(cavity);
+
+            // Verificar se há interseção entre a bounding box da ferramenta e da cárie
+            if (toolBoundingBox.intersectsBox(cavityBoundingBox)) {
+                cavityAttachedToTool = true;
+            }
+
+            // Se a cárie estiver em contato com a ferramenta, mova-a junto com a ponta da ferramenta
+            if (cavityAttachedToTool) {
+                cavity.position.copy(tool.position).add(toolTipOffset);
+            }
+        }
+
+        // Função para detectar colisão entre ferramenta e restauração
+        function checkToolRestorationCollision() {
+            const toolBoundingBox = new THREE.Box3().setFromObject(tool);
+            const restorationBoundingBox = new THREE.Box3().setFromObject(restoration);
+
+            // Verificar se há interseção entre a bounding box da ferramenta e da restauração
+            if (toolBoundingBox.intersectsBox(restorationBoundingBox)) {
+                restorationAttachedToTool = true;
+            }
+
+            // Se a restauração estiver em contato com a ferramenta, mova-a junto com a ponta da ferramenta
+            if (restorationAttachedToTool) {
+                restoration.position.copy(tool.position).add(toolTipOffset);
+            }
+        }
+
+        // Função para selecionar o objeto (ferramenta, dente, cárie ou restauração)
+        document.getElementById('selectTool').addEventListener('change', function () {
+            selectedObject = 'tool';
+        });
+
+        document.getElementById('selectTooth').addEventListener('change', function () {
+            selectedObject = 'tooth';
+        });
+
+        document.getElementById('selectCavity').addEventListener('change', function () {
+            selectedObject = 'cavity';
+        });
+
+        document.getElementById('selectRestoration').addEventListener('change', function () {
+            selectedObject = 'restoration';
+        });
+
+        // Função para mover o objeto
+        function move(direction) {
+            let object;
+            if (selectedObject === 'tool') {
+                object = tool;
+            } else if (selectedObject === 'tooth' && toothObject) {
+                object = toothObject;
+            } else if (selectedObject === 'cavity') {
+                object = cavity;
+            } else if (selectedObject === 'restoration') {
+                object = restoration;
+            }
+
+            if (object) {
+                switch (direction) {
+                    case 'up': object.position.y += moveSpeed; break;
+                    case 'down': object.position.y -= moveSpeed; break;
+                    case 'left': object.position.x -= moveSpeed; break;
+                    case 'right': object.position.x += moveSpeed; break;
+                    case 'forward': object.position.z -= moveSpeed; break;
+                    case 'backward': object.position.z += moveSpeed; break;
+                }
+            }
+        }
+
+        // Função para rotacionar o objeto
+        function rotate(axis) {
+            let object;
+            if (selectedObject === 'tool') {
+                object = tool;
+            } else if (selectedObject === 'tooth' && toothObject) {
+                object = toothObject;
+            } else if (selectedObject === 'cavity') {
+                object = cavity;
+            } else if (selectedObject === 'restoration') {
+                object = restoration;
+            }
+
+            if (object) {
+                switch (axis) {
+                    case 'x': object.rotation.x += rotateSpeed; break;
+                    case 'y': object.rotation.y += rotateSpeed; break;
+                    case 'z': object.rotation.z += rotateSpeed; break;
+                }
+            }
+        }
+
+        // Função para soltar a restauração e reposicionar a ferramenta
+        document.getElementById('releaseRestoration').addEventListener('click', function() {
+            restorationAttachedToTool = false; // Desvincula a restauração da ferramenta
+            tool.position.copy(initialToolPosition); // Restaura a posição inicial da ferramenta
+        });
+        // Função para soltar a carie e reposicionar a ferramenta
+        document.getElementById('releaseRestoration').addEventListener('click', function() {
+            cavityAttachedToTool = false; // Desvincula a restauração da ferramenta
+            tool.position.copy(initialToolPosition); // Restaura a posição inicial da ferramenta
+        });
+        // Alternar controle do mouse
+        document.getElementById('toggleMouseControl').addEventListener('click', function () {
+            mouseControlEnabled = !mouseControlEnabled;
+            controls.enabled = mouseControlEnabled;
+            this.textContent = mouseControlEnabled ? 'Disable Mouse Control' : 'Enable Mouse Control';
+        });
+
+        // Função para resetar a posição da ferramenta
+        document.getElementById('resetTool').addEventListener('click', function() {
+            tool.position.copy(initialToolPosition); // Restaura a posição inicial da ferramenta
+            cavityAttachedToTool = false; // Desvincula a cárie da ferramenta
+            restorationAttachedToTool = false; // Desvincula a restauração da ferramenta
+        });
+    </script>
+</body>
+</html>

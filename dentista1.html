@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Odontológica - Procedimento</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        /* Estilos do Menu */
+        .navbar {
+            background-color: #333;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        .navbar a {
+            color: white;
+            padding: 14px 20px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            display: inline-block;
+        }
+
+        .navbar a:hover {
+            background-color: #575757;
+        }
+
+        /* Estilos da galeria de imagens */
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px;
+        }
+
+        .gallery img {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            margin: 10px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .gallery img:hover {
+            transform: scale(1.05);
+            border-color: #007BFF;
+        }
+
+        /* Estilos para o modal */
+        .modal {
+            display: none; /* Oculto por padrão */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-content canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Títulos e texto */
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 20px;
+        }
+
+        .description {
+            text-align: center;
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        /* Botões de controle */
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+        }
+
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+
+    </style>
+</head>
+<body>
+
+   
+    <!-- Título e Descrição -->
+    <h1>Análise Odontológica</h1>
+    <p class="description">procedimentos disponiveis:</p>
+     <!-- Menu de Navegação -->
+     <div class="navbar">
+        <a href="analise3D.html">Análise 3D</a>
+        <a href="dentista3.html">Procedimento 3D</a>
+    </div>
+
+    <p class="description">imagens do paciente, clique para realizar um procedimento com caneta.</p>
+
+    <!-- Galeria de Imagens -->
+    <div class="gallery">
+        <img src="imagens/9ce3yu71.jpg" alt="Imagem 1">
+        <img src="imagens/a7x80115.jpg" alt="Imagem 2">
+        <img src="imagens/dw9r6n0z.jpg" alt="Imagem 3">
+        <img src="imagens/hyt1pktc.jpg" alt="Imagem 4">
+        <img src="imagens/lqtu3e2i.jpg" alt="Imagem 5">
+        <img src="imagens/mxd2ujf2.jpg" alt="Imagem 6">
+        <img src="imagens/xbadta13.jpg" alt="Imagem 7">
+        <img src="imagens/yrss2lwn.jpg" alt="Imagem 8">
+    </div>
+
+    <!-- Modal para realizar procedimento -->
+    <div class="modal" id="imageModal">
+        <span class="close" id="closeModal">&times;</span>
+        <div class="modal-content">
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="controls">
+            <button id="clearCanvas">Limpar</button>
+        </div>
+    </div>
+
+    <script>
+        const galleryImages = document.querySelectorAll('.gallery img');
+        const modal = document.getElementById('imageModal');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const closeModal = document.getElementById('closeModal');
+        const clearCanvas = document.getElementById('clearCanvas');
+
+        let isDrawing = false;
+        let startX, startY;
+
+        // Função para abrir o modal e desenhar sobre a imagem
+        galleryImages.forEach(img => {
+            img.addEventListener('click', function() {
+                modal.style.display = "flex";
+
+                // Carregar a imagem no canvas
+                const image = new Image();
+                image.src = this.src;
+                image.onload = function() {
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                }
+            });
+        });
+
+        // Função para fechar o modal
+        closeModal.addEventListener('click', function() {
+            modal.style.display = "none";
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Função para desenhar no canvas
+        canvas.addEventListener('mousedown', function(e) {
+            isDrawing = true;
+            const { offsetX, offsetY } = getMousePos(e);
+            startX = offsetX;
+            startY = offsetY;
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (isDrawing) {
+                const { offsetX, offsetY } = getMousePos(e);
+                context.strokeStyle = "#FF0000";
+                context.lineWidth = 5;
+                context.lineCap = "round";
+
+                context.beginPath();
+                context.moveTo(startX, startY);
+                context.lineTo(offsetX, offsetY);
+                context.stroke();
+
+                startX = offsetX;
+                startY = offsetY;
+            }
+        });
+
+        canvas.addEventListener('mouseup', function() {
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mouseout', function() {
+            isDrawing = false;
+        });
+
+        // Função para ajustar as coordenadas do mouse de acordo com o tamanho do canvas
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                offsetX: (evt.clientX - rect.left) * (canvas.width / rect.width),
+                offsetY: (evt.clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        // Função para limpar o canvas
+        clearCanvas.addEventListener('click', function() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Fechar o modal ao clicar fora da imagem
+        window.addEventListener('click', function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+                context.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        });
+    </script>
+
+</body>
+</html>

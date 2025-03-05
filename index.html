@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Início - OdontoSim 3D</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .slider {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .slides {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .slide {
+            min-width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            font-size: 2rem;
+            color: white;
+            background-size: cover; /* Para cobrir todo o slide */
+            background-position: center; /* Centraliza a imagem */
+        }
+
+        .slide-1 {
+            background-image: url('imagens/a7x80115.jpg');
+        }
+
+        .slide-2 {
+            background-image: url('imagens/a7x80115.jpg');
+        }
+
+        .slide-3 {
+            background-image: url('imagens/dw9r6n0z.jpg');
+            color: #000; /* Ajuste a cor do texto para contraste */
+        }
+
+        .controls {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            transform: translateY(-50%);
+        }
+
+        .control {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .dots {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: #ccc;
+            border-radius: 50%;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+
+        .dot.active {
+            background-color: #333;
+        }
+
+        .button {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="slider">
+        <div class="slides">
+            <div class="slide slide-1">
+                <h1>Bem-vindo ao OdontoSim 3D</h1>
+                <a href="dentista1.html"><button class="button">Iniciar Análise</button></a>
+            </div>
+            <div class="slide slide-2">
+                <h1>Cuidados Dentários Personalizados</h1>
+                <a href="dentista1.html"><button class="button">Iniciar Análise</button></a>
+            </div>
+            <div class="slide slide-3">
+                <a href="dentista1.html"><button class="button">Iniciar Análise</button></a>
+            </div>
+        </div>
+        <div class="controls">
+            <span class="control" id="prev">&#10094;</span>
+            <span class="control" id="next">&#10095;</span>
+        </div>
+        <div class="dots">
+            <span class="dot active"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelector('.slides');
+        const slideCount = document.querySelectorAll('.slide').length;
+        const dots = document.querySelectorAll('.dot');
+
+        document.getElementById('next').addEventListener('click', function() {
+            changeSlide(currentSlide + 1);
+        });
+
+        document.getElementById('prev').addEventListener('click', function() {
+            changeSlide(currentSlide - 1);
+        });
+
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                changeSlide(index);
+            });
+        });
+
+        function changeSlide(index) {
+            if (index < 0) index = slideCount - 1;
+            if (index >= slideCount) index = 0;
+            slides.style.transform = `translateX(${-index * 100}%)`;
+            dots.forEach(dot => dot.classList.remove('active'));
+            dots[index].classList.add('active');
+            currentSlide = index;
+        }
+    </script>
+
+</body>
+</html>
